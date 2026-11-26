@@ -113,6 +113,7 @@ uint64_t CLEAR_DBL_O = 0b1111111111111111111111111111111111111100;
 uint64_t state = 0b0000010100111001011101110000000000000000;
 
 uint64_t canonStates[3674160];
+uint32_t canonStatesI = 0;
 
 typedef struct StateToWrite
 {
@@ -335,7 +336,20 @@ void writeToFile(StateToWrite stateToWrite, FILE *file)
   fprintf(file, " %" PRId64 "\n", stateToWrite.movesToWrite);
 }
 
-void generateLookupFile(uint64_t state, FILE file)
+uint8_t addToCanonState(uint64_t stateToAdd)
+{
+  for (int i = 0; i <= canonStatesI; i++)
+  {
+    if (canonStates[i] == stateToAdd)
+    {
+      return 0;
+    }
+  }
+  canonStates[canonStatesI++] = stateToAdd;
+  return 1;
+}
+
+void generateLookupFile(uint64_t state, FILE *file)
 {
 }
 int main()
