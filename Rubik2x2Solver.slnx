@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Rubik2x2Solver/Rubik2x2Solver.vcxproj" Id="3c053ae2-4857-40c3-b800-2dc3d9fc0e6e" />
+</Solution>
