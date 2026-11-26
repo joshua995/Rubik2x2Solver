@@ -112,7 +112,9 @@ uint64_t CLEAR_DBL_O = 0b1111111111111111111111111111111111111100;
 
 uint64_t state = 0b0000010100111001011101110000000000000000;
 
-struct StateToWrite
+uint64_t canonStates[3674160];
+
+typedef struct StateToWrite
 {
   uint64_t stateToWrite;
   uint64_t movesToWrite;
@@ -327,6 +329,15 @@ void B2()
   state = (state & CLEAR_B_CORNERS & CLEAR_B_CORNERS_O) | ((((((state >> PERM_OFFSET) & B_CORNER_MASK) >> 18) & 0b000000000000000000111111) | ((((state >> PERM_OFFSET) & B_CORNER_MASK) << 18) & 0b111111000000000000000000)) << PERM_OFFSET) | ((((state & B_CORNER_O_MASK) >> 12) & 0b0000000000001111) | (((state & B_CORNER_O_MASK) << 12) & 0b11110000000000));
 }
 
+void writeToFile(StateToWrite stateToWrite, FILE *file)
+{
+  fprintf(file, "%" PRId64, stateToWrite.stateToWrite);
+  fprintf(file, " %" PRId64 "\n", stateToWrite.movesToWrite);
+}
+
+void generateLookupFile(uint64_t state, FILE file)
+{
+}
 int main()
 {
   // printf("Hello, World! %"PRId64"\n", state);
@@ -362,17 +373,17 @@ int main()
 
   // int64_t elapsed = (int64_t)(endT.tv_sec - startT.tv_sec) * 1000000000LL + (endT.tv_nsec - startT.tv_nsec);
   // printf("%ld ns\n", elapsed);
-  struct StateToWrite stateToWrite = {state, 0b01};
-  FILE *file = fopen("output.txt", "w"); // Open for writing
+  FILE *file = fopen("lookupFile.txt", "w"); // Open for writing
 
   if (file == NULL)
   {
     printf("Couldn't create file!\n");
     return 1;
   }
-
-  fprintf(file, "%" PRId64, stateToWrite.stateToWrite);
-  fprintf(file, " %" PRId64 "\n", stateToWrite.movesToWrite);
+  // Store solved state
+  StateToWrite stateToWrite = {state, 0b00};
+  writeToFile(stateToWrite, file);
+  generateLookupFile(state, file);
   fclose(file);
 
   return 0;
