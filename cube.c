@@ -119,6 +119,8 @@ typedef struct StateToWrite
 {
   uint64_t stateToWrite;
   uint64_t movesToWrite;
+  uint8_t depth;
+  uint32_t canonMovesToWrite;
 } StateToWrite;
 
 void U()
@@ -333,7 +335,9 @@ void B2()
 void writeToFile(StateToWrite stateToWrite, FILE *file)
 {
   fprintf(file, "%" PRId64, stateToWrite.stateToWrite);
-  fprintf(file, " %" PRId64 "\n", stateToWrite.movesToWrite);
+  fprintf(file, " %" PRId64, stateToWrite.movesToWrite);
+  fprintf(file, " %d", stateToWrite.depth);
+  fprintf(file, " %d\n", stateToWrite.canonMovesToWrite);
 }
 
 uint8_t addToCanonState(uint64_t stateToAdd)
@@ -351,6 +355,7 @@ uint8_t addToCanonState(uint64_t stateToAdd)
 
 void generateLookupFile(uint64_t state, FILE *file)
 {
+  addToCanonState(state);
 }
 int main()
 {
@@ -395,7 +400,7 @@ int main()
     return 1;
   }
   // Store solved state
-  StateToWrite stateToWrite = {state, 0b00};
+  StateToWrite stateToWrite = {state, 0, 0, 0};
   writeToFile(stateToWrite, file);
   generateLookupFile(state, file);
   fclose(file);
