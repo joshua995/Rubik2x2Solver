@@ -1,4 +1,4 @@
-// gcc -O3 -march=native test.c -o test
+// gcc -O3 -march=native -flto -DNDEBUG cube.c -o cube
 
 #include <stdio.h>
 #include <stdint.h>
@@ -6,121 +6,119 @@
 #include <time.h>
 
 #define MAX_SIZE 3674160
-#define HASH_SIZE (1ULL << 25)
+#define HASH_SIZE (1ULL << 23)
 #define HASH_MASK (HASH_SIZE - 1)
 
-// For file
-uint8_t U_MOVE = 0;
-uint8_t Ui_MOVE = 1;
-uint8_t U2_MOVE = 2;
-uint8_t D_MOVE = 3;
-uint8_t Di_MOVE = 4;
-uint8_t D2_MOVE = 5;
-uint8_t R_MOVE = 6;
-uint8_t Ri_MOVE = 7;
-uint8_t R2_MOVE = 8;
-uint8_t L_MOVE = 9;
-uint8_t Li_MOVE = 10;
-uint8_t L2_MOVE = 11;
-uint8_t F_MOVE = 12;
-uint8_t Fi_MOVE = 13;
-uint8_t F2_MOVE = 14;
-uint8_t B_MOVE = 15;
-uint8_t Bi_MOVE = 16;
-uint8_t B2_MOVE = 17;
-uint8_t X_MOVE = 18;
-uint8_t Xi_MOVE = 19;
-uint8_t X2_MOVE = 20;
-uint8_t Z_MOVE = 21;
-uint8_t Zi_MOVE = 22;
-uint8_t Z2_MOVE = 23;
-uint8_t Y_MOVE = 24;
-uint8_t Yi_MOVE = 25;
-uint8_t Y2_MOVE = 26;
+#define PERM_OFFSET 16 // >> 16 to get list of perms MSB -> LSB 0, 1, 2, ... corners
+#define ULB_OFFSET 21  // * 3
+#define UBR_OFFSET 18
+#define URF_OFFSET 15
+#define UFL_OFFSET 12
+#define DLF_OFFSET 9
+#define DFR_OFFSET 6
+#define DRB_OFFSET 3
+#define DBL_OFFSET 0
 
-uint8_t ULB = 0b000;
-uint8_t UBR = 0b001;
-uint8_t URF = 0b010;
-uint8_t UFL = 0b011;
-uint8_t DLF = 0b100;
-uint8_t DFR = 0b101;
-uint8_t DRB = 0b110;
-uint8_t DBL = 0b111;
+#define U_MOVE 0
+#define Ui_MOVE 1
+#define U2_MOVE 2
+#define D_MOVE 3
+#define Di_MOVE 4
+#define D2_MOVE 5
+#define R_MOVE 6
+#define Ri_MOVE 7
+#define R2_MOVE 8
+#define L_MOVE 9
+#define Li_MOVE 10
+#define L2_MOVE 11
+#define F_MOVE 12
+#define Fi_MOVE 13
+#define F2_MOVE 14
+#define B_MOVE 15
+#define Bi_MOVE 16
+#define B2_MOVE 17
+#define X_MOVE 18
+#define Xi_MOVE 19
+#define X2_MOVE 20
+#define Z_MOVE 21
+#define Zi_MOVE 22
+#define Z2_MOVE 23
+#define Y_MOVE 24
+#define Yi_MOVE 25
+#define Y2_MOVE 26
 
-uint8_t ORIENT0 = 0b00;
-uint8_t ORIENT1 = 0b01; // i.e. ULB -> BUL
-uint8_t ORIENT2 = 0b10; // i.e. ULB -> LBU
+#define ULB 0b000
+#define UBR 0b001
+#define URF 0b010
+#define UFL 0b011
+#define DLF 0b100
+#define DFR 0b101
+#define DRB 0b110
+#define DBL 0b111
 
-uint8_t PERM_OFFSET = 16; // >> 14 to get list of perms MSB -> LSB 0, 1, 2, ... corners
-uint8_t ULB_OFFSET = 21;  // * 3
-uint8_t UBR_OFFSET = 18;
-uint8_t URF_OFFSET = 15;
-uint8_t UFL_OFFSET = 12;
-uint8_t DLF_OFFSET = 9;
-uint8_t DFR_OFFSET = 6;
-uint8_t DRB_OFFSET = 3;
-uint8_t DBL_OFFSET = 0;
+#define ORIENT0 0b00
+#define ORIENT1 0b01 // i.e. ULB -> BUL
+#define ORIENT2 0b10 // i.e. ULB -> LBU
 
-uint8_t ULB_OFFSET_O = 14; // * 2
-uint8_t UBR_OFFSET_O = 12;
-uint8_t URF_OFFSET_O = 10;
-uint8_t UFL_OFFSET_O = 8;
-uint8_t DLF_OFFSET_O = 6;
-uint8_t DFR_OFFSET_O = 4;
-uint8_t DRB_OFFSET_O = 2;
-uint8_t DBL_OFFSET_O = 0;
+#define ULB_OFFSET_O 14 // * 2
+#define UBR_OFFSET_O 12
+#define URF_OFFSET_O 10
+#define UFL_OFFSET_O 8
+#define DLF_OFFSET_O 6
+#define DFR_OFFSET_O 4
+#define DRB_OFFSET_O 2
+#define DBL_OFFSET_O 0
 
-uint8_t WHITE = 0b000;
-uint8_t YELLOW = 0b001;
-uint8_t BLUE = 0b010;
-uint8_t GREEN = 0b011;
-uint8_t RED = 0b100;
-uint8_t ORANGE = 0b101;
+#define WHITE 0b000
+#define YELLOW 0b001
+#define BLUE 0b010
+#define GREEN 0b011
+#define RED 0b100
+#define ORANGE 0b101
 
-uint32_t R_CORNER_MASK = 0b000111111000000111111000;
-uint32_t L_CORNER_MASK = 0b111000000111111000000111;
-uint32_t F_CORNER_MASK = 0b000000111111111111000000;
-uint32_t B_CORNER_MASK = 0b111111000000000000111111;
+#define R_CORNER_MASK 0b000111111000000111111000
+#define L_CORNER_MASK 0b111000000111111000000111
+#define F_CORNER_MASK 0b000000111111111111000000
+#define B_CORNER_MASK 0b111111000000000000111111
 
-uint32_t R_CORNER_O_MASK = 0b0011110000111100;
-uint32_t L_CORNER_O_MASK = 0b1100001111000011;
-uint32_t F_CORNER_O_MASK = 0b0000111111110000;
-uint32_t B_CORNER_O_MASK = 0b1111000000001111;
+#define R_CORNER_O_MASK 0b0011110000111100
+#define L_CORNER_O_MASK 0b1100001111000011
+#define F_CORNER_O_MASK 0b0000111111110000
+#define B_CORNER_O_MASK 0b1111000000001111
 
-uint64_t CLEAR_PERM = 0b0000000000000000000000001111111111111111;
+#define CLEAR_PERM 0b0000000000000000000000001111111111111111
 
-uint64_t CLEAR_U_CORNERS = 0b0000000000001111111111111111111111111111;
-uint64_t CLEAR_D_CORNERS = 0b1111111111110000000000001111111111111111;
-uint64_t CLEAR_R_CORNERS = 0b1110000001111110000001111111111111111111;
-uint64_t CLEAR_L_CORNERS = 0b0001111110000001111110001111111111111111;
-uint64_t CLEAR_F_CORNERS = 0b1111110000000000001111111111111111111111;
-uint64_t CLEAR_B_CORNERS = 0b0000001111111111110000001111111111111111;
+#define CLEAR_U_CORNERS 0b0000000000001111111111111111111111111111
+#define CLEAR_D_CORNERS 0b1111111111110000000000001111111111111111
+#define CLEAR_R_CORNERS 0b1110000001111110000001111111111111111111
+#define CLEAR_L_CORNERS 0b0001111110000001111110001111111111111111
+#define CLEAR_F_CORNERS 0b1111110000000000001111111111111111111111
+#define CLEAR_B_CORNERS 0b0000001111111111110000001111111111111111
 
-uint64_t CLEAR_ORIENT = 0b1111111111111111111111110000000000000000;
+#define CLEAR_ORIENT 0b1111111111111111111111110000000000000000
 
-uint64_t CLEAR_U_CORNERS_O = 0b1111111111111111111111110000000011111111;
-uint64_t CLEAR_D_CORNERS_O = 0b1111111111111111111111111111111100000000;
-uint64_t CLEAR_R_CORNERS_O = 0b1111111111111111111111111100001111000011;
-uint64_t CLEAR_L_CORNERS_O = 0b1111111111111111111111110011110000111100;
-uint64_t CLEAR_F_CORNERS_O = 0b1111111111111111111111111111000000001111;
-uint64_t CLEAR_B_CORNERS_O = 0b1111111111111111111111110000111111110000;
+#define CLEAR_U_CORNERS_O 0b1111111111111111111111110000000011111111
+#define CLEAR_D_CORNERS_O 0b1111111111111111111111111111111100000000
+#define CLEAR_R_CORNERS_O 0b1111111111111111111111111100001111000011
+#define CLEAR_L_CORNERS_O 0b1111111111111111111111110011110000111100
+#define CLEAR_F_CORNERS_O 0b1111111111111111111111111111000000001111
+#define CLEAR_B_CORNERS_O 0b1111111111111111111111110000111111110000
 
-uint64_t CLEAR_ULB_O = 0b1111111111111111111111110011111111111111;
-uint64_t CLEAR_UBR_O = 0b1111111111111111111111111100111111111111;
-uint64_t CLEAR_URF_O = 0b1111111111111111111111111111001111111111;
-uint64_t CLEAR_UFL_O = 0b1111111111111111111111111111110011111111;
-uint64_t CLEAR_DLF_O = 0b1111111111111111111111111111111100111111;
-uint64_t CLEAR_DFR_O = 0b1111111111111111111111111111111111001111;
-uint64_t CLEAR_DRB_O = 0b1111111111111111111111111111111111110011;
-uint64_t CLEAR_DBL_O = 0b1111111111111111111111111111111111111100;
+#define CLEAR_ULB_O 0b1111111111111111111111110011111111111111
+#define CLEAR_UBR_O 0b1111111111111111111111111100111111111111
+#define CLEAR_URF_O 0b1111111111111111111111111111001111111111
+#define CLEAR_UFL_O 0b1111111111111111111111111111110011111111
+#define CLEAR_DLF_O 0b1111111111111111111111111111111100111111
+#define CLEAR_DFR_O 0b1111111111111111111111111111111111001111
+#define CLEAR_DRB_O 0b1111111111111111111111111111111111110011
+#define CLEAR_DBL_O 0b1111111111111111111111111111111111111100
 
 uint64_t cube = 0b0000010100111001011101110000000000000000;
 
 typedef struct StateStruct
 {
   uint64_t cube;
-  uint64_t moves;
-  uint8_t depth;
+  uint64_t movesNdepth;
   uint32_t canonMovesToWrite;
 } State;
 
@@ -149,8 +147,9 @@ uint8_t hashsetInsert(uint64_t cube)
   while (cubeHashTable[i] != 0)
   {
     if (cubeHashTable[i] == cube)
+    {
       return 0;
-
+    }
     i = (i + 1) & HASH_MASK;
   }
 
@@ -697,14 +696,12 @@ void updateNewState(uint64_t currentStateMoves, uint8_t currentDepth, uint32_t n
   // Store current state before canonicalization
   uint64_t tempCube = cube;
   uint32_t canonMoves = setCanonicalState();
-  // printf("%ld\n", currentStateMoves);
-  // printf("%" PRId64 " %" PRId64 "\n", cube, tempCube);
   if (hashsetInsert(cube))
   {
     uint64_t currentMoves = ((currentStateMoves << 5) | nextMove);
     // Also encode the depth for decoding later
-    State s = {cube, currentMoves, currentDepth + 1, canonMoves};
-    fprintf(file, "%" PRId64 " %" PRId64 " %d %d\n", s.cube, s.moves, s.depth, s.canonMovesToWrite);
+    State s = {cube, (currentMoves << 4) | ((currentDepth + 1) & 0b1111), canonMoves};
+    fprintf(file, "%" PRId64 " %" PRId64 " %d\n", s.cube, s.movesNdepth, s.canonMovesToWrite);
     s.cube = tempCube;
 
     stateQueue[stateQueueTail++] = s;
@@ -714,93 +711,90 @@ void updateNewState(uint64_t currentStateMoves, uint8_t currentDepth, uint32_t n
 void generateLookupFile(uint64_t cubei, FILE *file)
 {
   hashsetInsert(cubei);
-  State state = {cubei, 0, 0, 0};
+  State state = {cubei, 0, 0};
   stateQueue[stateQueueTail++] = state;
   while (stateQueueHead < stateQueueTail)
   {
     // Breadth first search method
     state = stateQueue[stateQueueHead];
-    if (state.depth >= 11)
+    if ((state.movesNdepth & 0b1111) >= 11)
     {
       stateQueueHead++;
       continue;
     }
-
-    // printf("%ld ", cube);
     cube = state.cube;
-    // printf("%ld\n", cube);
     uint64_t currentCube = cube;
 
     U();
-    updateNewState(state.moves, state.depth, U_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), U_MOVE, file);
 
     cube = currentCube;
     Ui();
-    updateNewState(state.moves, state.depth, Ui_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), Ui_MOVE, file);
 
     cube = currentCube;
     U2();
-    updateNewState(state.moves, state.depth, U2_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), U2_MOVE, file);
 
     cube = currentCube;
     D();
-    updateNewState(state.moves, state.depth, D_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), D_MOVE, file);
 
     cube = currentCube;
     Di();
-    updateNewState(state.moves, state.depth, Di_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), Di_MOVE, file);
 
     cube = currentCube;
     D2();
-    updateNewState(state.moves, state.depth, D2_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), D2_MOVE, file);
 
     cube = currentCube;
     R();
-    updateNewState(state.moves, state.depth, R_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), R_MOVE, file);
 
     cube = currentCube;
     Ri();
-    updateNewState(state.moves, state.depth, Ri_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), Ri_MOVE, file);
 
     cube = currentCube;
     R2();
-    updateNewState(state.moves, state.depth, R2_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), R2_MOVE, file);
 
     cube = currentCube;
     L();
-    updateNewState(state.moves, state.depth, L_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), L_MOVE, file);
 
     cube = currentCube;
     Li();
-    updateNewState(state.moves, state.depth, Li_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), Li_MOVE, file);
 
     cube = currentCube;
     L2();
-    updateNewState(state.moves, state.depth, L2_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), L2_MOVE, file);
 
     cube = currentCube;
     F();
-    updateNewState(state.moves, state.depth, F_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), F_MOVE, file);
 
     cube = currentCube;
     Fi();
-    updateNewState(state.moves, state.depth, Fi_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), Fi_MOVE, file);
 
     cube = currentCube;
     F2();
-    updateNewState(state.moves, state.depth, F2_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), F2_MOVE, file);
 
     cube = currentCube;
     B();
-    updateNewState(state.moves, state.depth, B_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), B_MOVE, file);
 
     cube = currentCube;
     Bi();
-    updateNewState(state.moves, state.depth, Bi_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), Bi_MOVE, file);
 
     cube = currentCube;
     B2();
-    updateNewState(state.moves, state.depth, B2_MOVE, file);
+    updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), B2_MOVE, file);
     stateQueueHead++;
   }
 }
@@ -814,11 +808,12 @@ int main()
     printf("Couldn't create file!\n");
     return 1;
   }
+  setvbuf(file, NULL, _IOFBF, 1 << 20);
   struct timespec startT;
   clock_gettime(CLOCK_MONOTONIC, &startT);
   // Store solved cube
-  State state = {cube, 0, 0, 0};
-  fprintf(file, "%" PRId64 " %" PRId64 " %d %d\n", state.cube, state.moves, state.depth, state.canonMovesToWrite);
+  State state = {cube, 0, 0};
+  fprintf(file, "%" PRId64 " %" PRId64 " %d\n", state.cube, state.movesNdepth, state.canonMovesToWrite);
   generateLookupFile(cube, file);
   fclose(file);
   struct timespec endT;
@@ -827,5 +822,5 @@ int main()
   int64_t elapsed = (int64_t)(endT.tv_sec - startT.tv_sec) * 1000000000LL + (endT.tv_nsec - startT.tv_nsec);
   printf("%ld ns\n", elapsed / 1000000);
 
-  // return 0;
+  return 0;
 }
