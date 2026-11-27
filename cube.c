@@ -275,45 +275,49 @@ void L2()
 {
   cube = (cube & CLEAR_L_CORNERS & CLEAR_L_CORNERS_O) | ((((((cube >> PERM_OFFSET) & L_CORNER_MASK) >> 12) & 0b000000000000111000000111) | ((((cube >> PERM_OFFSET) & L_CORNER_MASK) << 12) & 0b111000000111000000000000)) << PERM_OFFSET) | ((((cube & L_CORNER_O_MASK) >> 8) & 0b0000000011000011) | (((cube & L_CORNER_O_MASK) << 8) & 0b1100001100000000));
 }
-
+static const uint8_t F_ORIENT_A[4] = {2, 0, 1, 0};
+static const uint8_t F_ORIENT_B[4] = {1, 2, 0, 0};
 void F()
 {
   cube = ((cube & CLEAR_F_CORNERS & CLEAR_F_CORNERS_O) | ((((((cube >> PERM_OFFSET) & F_CORNER_MASK) << 3) & 0b000000111111111000000000) | ((((cube >> PERM_OFFSET) & F_CORNER_MASK) >> 9) & 0b000000000000000111000000)) << PERM_OFFSET) | ((((cube & F_CORNER_O_MASK) << 2) & 0b0000111111000000) | (((cube & F_CORNER_O_MASK) >> 6) & 0b0000000000110000)));
-  cube = (cube & CLEAR_URF_O & CLEAR_UFL_O & CLEAR_DLF_O & CLEAR_DFR_O) | ((((cube >> UFL_OFFSET_O) & 0b11) == 0 ? ORIENT2 : ((cube >> UFL_OFFSET_O) & 0b11) == 1 ? ORIENT0
-                                                                                                                                                                  : ORIENT1)
-                                                                           << UFL_OFFSET_O) |
-         ((((cube >> URF_OFFSET_O) & 0b11) == 0   ? ORIENT1
-           : ((cube >> URF_OFFSET_O) & 0b11) == 1 ? ORIENT2
-                                                  : ORIENT0)
-          << URF_OFFSET_O) |
-         ((((cube >> DFR_OFFSET_O) & 0b11) == 0   ? ORIENT2
-           : ((cube >> DFR_OFFSET_O) & 0b11) == 1 ? ORIENT0
-                                                  : ORIENT1)
-          << DFR_OFFSET_O) |
-         ((((cube >> DLF_OFFSET_O) & 0b11) == 0   ? ORIENT1
-           : ((cube >> DLF_OFFSET_O) & 0b11) == 1 ? ORIENT2
-                                                  : ORIENT0)
-          << DLF_OFFSET_O);
+  // cube = (cube & CLEAR_URF_O & CLEAR_UFL_O & CLEAR_DLF_O & CLEAR_DFR_O) | ((((cube >> UFL_OFFSET_O) & 0b11) == 0 ? ORIENT2 : ((cube >> UFL_OFFSET_O) & 0b11) == 1 ? ORIENT0
+  //                                                                                                                                                                 : ORIENT1)
+  //                                                                          << UFL_OFFSET_O) |
+  //        ((((cube >> URF_OFFSET_O) & 0b11) == 0   ? ORIENT1
+  //          : ((cube >> URF_OFFSET_O) & 0b11) == 1 ? ORIENT2
+  //                                                 : ORIENT0)
+  //         << URF_OFFSET_O) |
+  //        ((((cube >> DFR_OFFSET_O) & 0b11) == 0   ? ORIENT2
+  //          : ((cube >> DFR_OFFSET_O) & 0b11) == 1 ? ORIENT0
+  //                                                 : ORIENT1)
+  //         << DFR_OFFSET_O) |
+  //        ((((cube >> DLF_OFFSET_O) & 0b11) == 0   ? ORIENT1
+  //          : ((cube >> DLF_OFFSET_O) & 0b11) == 1 ? ORIENT2
+  //                                                 : ORIENT0)
+  //         << DLF_OFFSET_O);
+
+  cube = (cube & CLEAR_URF_O & CLEAR_UFL_O & CLEAR_DLF_O & CLEAR_DFR_O) | ((uint64_t)F_ORIENT_A[(cube >> UFL_OFFSET_O) & 3] << UFL_OFFSET_O) | ((uint64_t)F_ORIENT_B[(cube >> URF_OFFSET_O) & 3] << URF_OFFSET_O) | ((uint64_t)F_ORIENT_A[(cube >> DFR_OFFSET_O) & 3] << DFR_OFFSET_O) | ((uint64_t)F_ORIENT_B[(cube >> DLF_OFFSET_O) & 3] << DLF_OFFSET_O);
 }
 
 void Fi()
 {
   cube = ((cube & CLEAR_F_CORNERS & CLEAR_F_CORNERS_O) | ((((((cube >> PERM_OFFSET) & F_CORNER_MASK) >> 3) & 0b000000000111111111000000) | ((((cube >> PERM_OFFSET) & F_CORNER_MASK) << 9) & 0b000000111000000000000000)) << PERM_OFFSET) | ((((cube & F_CORNER_O_MASK) >> 2) & 0b0000001111110000) | (((cube & F_CORNER_O_MASK) << 6) & 0b0000110000000000)));
-  cube = (cube & CLEAR_URF_O & CLEAR_UFL_O & CLEAR_DLF_O & CLEAR_DFR_O) | ((((cube >> UFL_OFFSET_O) & 0b11) == 0 ? ORIENT2 : ((cube >> UFL_OFFSET_O) & 0b11) == 1 ? ORIENT0
-                                                                                                                                                                  : ORIENT1)
-                                                                           << UFL_OFFSET_O) |
-         ((((cube >> URF_OFFSET_O) & 0b11) == 0   ? ORIENT1
-           : ((cube >> URF_OFFSET_O) & 0b11) == 1 ? ORIENT2
-                                                  : ORIENT0)
-          << URF_OFFSET_O) |
-         ((((cube >> DFR_OFFSET_O) & 0b11) == 0   ? ORIENT2
-           : ((cube >> DFR_OFFSET_O) & 0b11) == 1 ? ORIENT0
-                                                  : ORIENT1)
-          << DFR_OFFSET_O) |
-         ((((cube >> DLF_OFFSET_O) & 0b11) == 0   ? ORIENT1
-           : ((cube >> DLF_OFFSET_O) & 0b11) == 1 ? ORIENT2
-                                                  : ORIENT0)
-          << DLF_OFFSET_O);
+  // cube = (cube & CLEAR_URF_O & CLEAR_UFL_O & CLEAR_DLF_O & CLEAR_DFR_O) | ((((cube >> UFL_OFFSET_O) & 0b11) == 0 ? ORIENT2 : ((cube >> UFL_OFFSET_O) & 0b11) == 1 ? ORIENT0
+  //                                                                                                                                                                 : ORIENT1)
+  //                                                                          << UFL_OFFSET_O) |
+  //        ((((cube >> URF_OFFSET_O) & 0b11) == 0   ? ORIENT1
+  //          : ((cube >> URF_OFFSET_O) & 0b11) == 1 ? ORIENT2
+  //                                                 : ORIENT0)
+  //         << URF_OFFSET_O) |
+  //        ((((cube >> DFR_OFFSET_O) & 0b11) == 0   ? ORIENT2
+  //          : ((cube >> DFR_OFFSET_O) & 0b11) == 1 ? ORIENT0
+  //                                                 : ORIENT1)
+  //         << DFR_OFFSET_O) |
+  //        ((((cube >> DLF_OFFSET_O) & 0b11) == 0   ? ORIENT1
+  //          : ((cube >> DLF_OFFSET_O) & 0b11) == 1 ? ORIENT2
+  //                                                 : ORIENT0)
+  //         << DLF_OFFSET_O);
+  cube = (cube & CLEAR_URF_O & CLEAR_UFL_O & CLEAR_DLF_O & CLEAR_DFR_O) | ((uint64_t)F_ORIENT_A[(cube >> UFL_OFFSET_O) & 3] << UFL_OFFSET_O) | ((uint64_t)F_ORIENT_B[(cube >> URF_OFFSET_O) & 3] << URF_OFFSET_O) | ((uint64_t)F_ORIENT_A[(cube >> DFR_OFFSET_O) & 3] << DFR_OFFSET_O) | ((uint64_t)F_ORIENT_B[(cube >> DLF_OFFSET_O) & 3] << DLF_OFFSET_O);
 }
 
 void F2()
@@ -727,71 +731,54 @@ void generateLookupFile(uint64_t cubei, FILE *file)
 
     U();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), U_MOVE, file);
-
     cube = currentCube;
     Ui();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), Ui_MOVE, file);
-
     cube = currentCube;
     U2();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), U2_MOVE, file);
-
     cube = currentCube;
     D();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), D_MOVE, file);
-
     cube = currentCube;
     Di();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), Di_MOVE, file);
-
     cube = currentCube;
     D2();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), D2_MOVE, file);
-
     cube = currentCube;
     R();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), R_MOVE, file);
-
     cube = currentCube;
     Ri();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), Ri_MOVE, file);
-
     cube = currentCube;
     R2();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), R2_MOVE, file);
-
     cube = currentCube;
     L();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), L_MOVE, file);
-
     cube = currentCube;
     Li();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), Li_MOVE, file);
-
     cube = currentCube;
     L2();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), L2_MOVE, file);
-
     cube = currentCube;
     F();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), F_MOVE, file);
-
     cube = currentCube;
     Fi();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), Fi_MOVE, file);
-
     cube = currentCube;
     F2();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), F2_MOVE, file);
-
     cube = currentCube;
     B();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), B_MOVE, file);
-
     cube = currentCube;
     Bi();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), Bi_MOVE, file);
-
     cube = currentCube;
     B2();
     updateNewState(state.movesNdepth, (state.movesNdepth & 0b1111), B2_MOVE, file);
