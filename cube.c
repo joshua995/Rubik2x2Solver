@@ -121,7 +121,6 @@ uint64_t cube = 0b0000010100111001011101110000000000000000;
 typedef struct StateStruct {
   uint64_t cube;
   uint64_t movesNdepth;
-  uint32_t canonMovesToWrite;
 } State;
 
 // State stored in primitive arrays
@@ -637,8 +636,8 @@ void updateNewState(uint64_t currentStateMoves, uint8_t currentDepth, uint32_t n
   if (hashsetInsert(cube)) {
     uint64_t currentMoves = ((currentStateMoves << 5) | nextMove);
     // Also encode the depth for decoding later
-    State s = {cube, (currentMoves << 4) | ((currentDepth + 1) & 0b1111), canonMoves};
-    fprintf(file, "%" PRId64 " %" PRId64 " %d\n", s.cube, s.movesNdepth, s.canonMovesToWrite);
+    State s = {cube, (currentMoves << 4) | ((currentDepth + 1) & 0b1111)};
+    fprintf(file, "%" PRId64 " %" PRId64 " %d\n", s.cube, s.movesNdepth, canonMoves);
     s.cube = tempCube;
 
     stateQueue[stateQueueTail++] = s;
@@ -647,7 +646,7 @@ void updateNewState(uint64_t currentStateMoves, uint8_t currentDepth, uint32_t n
 
 void generateLookupFile(uint64_t cubei, FILE *file) {
   hashsetInsert(cubei);
-  State state = {cubei, 0, 0};
+  State state = {cubei, 0};
   stateQueue[stateQueueTail++] = state;
   while (stateQueueHead < stateQueueTail) {
     // Breadth first search method
@@ -727,8 +726,8 @@ int main() {
   struct timespec startT;
   clock_gettime(CLOCK_MONOTONIC, &startT);
   // Store solved cube
-  State state = {cube, 0, 0};
-  fprintf(file, "%" PRId64 " %" PRId64 " %d\n", state.cube, state.movesNdepth, state.canonMovesToWrite);
+  State state = {cube, 0};
+  fprintf(file, "%" PRId64 " %d %d\n", state.cube, 0, 0);
   generateLookupFile(cube, file);
   fclose(file);
   struct timespec endT;
