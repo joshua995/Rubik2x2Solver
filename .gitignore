@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 lookupFile.txt
 lookupFile.txt
+*.txt
