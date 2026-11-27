@@ -6,6 +6,8 @@
 #include <time.h>
 
 #define MAX_SIZE 3674160
+#define HASH_SIZE (1ULL << 25)
+#define HASH_MASK (HASH_SIZE - 1)
 
 // For file
 uint8_t U_MOVE = 0;
@@ -114,10 +116,6 @@ uint64_t CLEAR_DBL_O = 0b1111111111111111111111111111111111111100;
 
 uint64_t cube = 0b0000010100111001011101110000000000000000;
 
-// TODO HashSet
-uint64_t canonStates[MAX_SIZE];
-uint32_t canonStatesI = 0;
-
 typedef struct StateStruct
 {
   uint64_t cube;
@@ -132,9 +130,32 @@ State stateQueue[MAX_SIZE];
 uint32_t stateQueueHead = 0;
 uint32_t stateQueueTail = 0;
 
-void enqueueState(State state)
+uint64_t cubeHashTable[HASH_SIZE];
+
+uint64_t hash64(uint64_t x)
 {
-  stateQueue[stateQueueTail++] = state;
+  x ^= x >> 30;
+  x *= 0xbf58476d1ce4e5b9ULL;
+  x ^= x >> 27;
+  x *= 0x94d049bb133111ebULL;
+  x ^= x >> 31;
+  return x;
+}
+
+uint8_t hashsetInsert(uint64_t cube)
+{
+  uint64_t i = hash64(cube) & HASH_MASK;
+
+  while (cubeHashTable[i] != 0)
+  {
+    if (cubeHashTable[i] == cube)
+      return 0;
+
+    i = (i + 1) & HASH_MASK;
+  }
+
+  cubeHashTable[i] = cube;
+  return 1;
 }
 
 void U()
@@ -343,7 +364,7 @@ void Bi()
 
 void B2()
 {
-  cube = (cube & CLEAR_B_CORNERS & CLEAR_B_CORNERS_O) | ((((((cube >> PERM_OFFSET) & B_CORNER_MASK) >> 18) & 0b000000000000000000111111) | ((((cube >> PERM_OFFSET) & B_CORNER_MASK) << 18) & 0b111111000000000000000000)) << PERM_OFFSET) | ((((cube & B_CORNER_O_MASK) >> 12) & 0b0000000000001111) | (((cube & B_CORNER_O_MASK) << 12) & 0b11110000000000));
+  cube = (cube & CLEAR_B_CORNERS & CLEAR_B_CORNERS_O) | ((((((cube >> PERM_OFFSET) & B_CORNER_MASK) >> 18) & 0b000000000000000000111111) | ((((cube >> PERM_OFFSET) & B_CORNER_MASK) << 18) & 0b111111000000000000000000)) << PERM_OFFSET) | ((((cube & B_CORNER_O_MASK) >> 12) & 0b0000000000001111) | (((cube & B_CORNER_O_MASK) << 12) & 0b1111000000000000));
 }
 
 void y()
@@ -428,7 +449,7 @@ void zi()
 
 void z2()
 {
-  cube = (cube & CLEAR_F_CORNERS & CLEAR_F_CORNERS_O & CLEAR_B_CORNERS & CLEAR_B_CORNERS_O) | ((((((cube >> PERM_OFFSET) & F_CORNER_MASK) >> 6) & 0b000000000000111111000000) | ((((cube >> PERM_OFFSET) & F_CORNER_MASK) << 6) & 0b000000111111000000000000)) << PERM_OFFSET) | ((((cube & F_CORNER_O_MASK) >> 4) & 0b0000000011110000) | (((cube & F_CORNER_O_MASK) << 4) & 0b00111100000000)) | ((((((cube >> PERM_OFFSET) & B_CORNER_MASK) >> 18) & 0b000000000000000000111111) | ((((cube >> PERM_OFFSET) & B_CORNER_MASK) << 18) & 0b111111000000000000000000)) << PERM_OFFSET) | ((((cube & B_CORNER_O_MASK) >> 12) & 0b0000000000001111) | (((cube & B_CORNER_O_MASK) << 12) & 0b11110000000000));
+  cube = (cube & CLEAR_F_CORNERS & CLEAR_F_CORNERS_O & CLEAR_B_CORNERS & CLEAR_B_CORNERS_O) | ((((((cube >> PERM_OFFSET) & F_CORNER_MASK) >> 6) & 0b000000000000111111000000) | ((((cube >> PERM_OFFSET) & F_CORNER_MASK) << 6) & 0b000000111111000000000000)) << PERM_OFFSET) | ((((cube & F_CORNER_O_MASK) >> 4) & 0b0000000011110000) | (((cube & F_CORNER_O_MASK) << 4) & 0b0000111100000000)) | ((((((cube >> PERM_OFFSET) & B_CORNER_MASK) >> 18) & 0b000000000000000000111111) | ((((cube >> PERM_OFFSET) & B_CORNER_MASK) << 18) & 0b111111000000000000000000)) << PERM_OFFSET) | ((((cube & B_CORNER_O_MASK) >> 12) & 0b0000000000001111) | (((cube & B_CORNER_O_MASK) << 12) & 0b1111000000000000));
 }
 
 void x()
@@ -509,27 +530,6 @@ void x2()
   cube = (cube & CLEAR_R_CORNERS & CLEAR_R_CORNERS_O & CLEAR_L_CORNERS & CLEAR_L_CORNERS_O) | ((((((cube >> PERM_OFFSET) & R_CORNER_MASK) >> 12) & 0b000000000000000111111000) | ((((cube >> PERM_OFFSET) & R_CORNER_MASK) << 12) & 0b000111111000000000000000)) << PERM_OFFSET) | ((((cube & R_CORNER_O_MASK) << 8) & 0b0011110000000000) | (((cube & R_CORNER_O_MASK) >> 8) & 0b0000000000111100)) | ((((((cube >> PERM_OFFSET) & L_CORNER_MASK) >> 12) & 0b000000000000111000000111) | ((((cube >> PERM_OFFSET) & L_CORNER_MASK) << 12) & 0b111000000111000000000000)) << PERM_OFFSET) | ((((cube & L_CORNER_O_MASK) >> 8) & 0b0000000011000011) | (((cube & L_CORNER_O_MASK) << 8) & 0b1100001100000000));
 }
 
-void writeToFile(State state, FILE *file)
-{
-  fprintf(file, "%" PRId64, state.cube);
-  fprintf(file, " %" PRId64, state.moves);
-  fprintf(file, " %d", state.depth);
-  fprintf(file, " %d\n", state.canonMovesToWrite);
-}
-
-uint8_t addToCanonState(uint64_t stateToAdd)
-{
-  for (int i = 0; i <= canonStatesI; i++)
-  {
-    if (canonStates[i] == stateToAdd)
-    {
-      return 0;
-    }
-  }
-  canonStates[canonStatesI++] = stateToAdd;
-  return 1;
-}
-
 uint32_t setCanonicalState()
 {
   if (((cube >> PERM_OFFSET >> UFL_OFFSET) & 0b111) == UFL &&
@@ -579,9 +579,9 @@ uint32_t setCanonicalState()
   else if (((cube >> PERM_OFFSET >> UBR_OFFSET) & 0b111) == UFL &&
            ((cube >> UBR_OFFSET_O) & 0b11) == ORIENT1)
   {
-    yi();
     xi();
-    return (Yi_MOVE << 5) | Xi_MOVE;
+    y();
+    return (Xi_MOVE << 5) | Y_MOVE;
   }
   else if (((cube >> PERM_OFFSET >> UBR_OFFSET) & 0b111) == UFL &&
            ((cube >> UBR_OFFSET_O) & 0b11) == ORIENT2)
@@ -697,35 +697,38 @@ void updateNewState(uint64_t currentStateMoves, uint8_t currentDepth, uint32_t n
   // Store current state before canonicalization
   uint64_t tempCube = cube;
   uint32_t canonMoves = setCanonicalState();
+  // printf("%ld\n", currentStateMoves);
   // printf("%" PRId64 " %" PRId64 "\n", cube, tempCube);
-  if (addToCanonState(cube))
+  if (hashsetInsert(cube))
   {
     uint64_t currentMoves = ((currentStateMoves << 5) | nextMove);
     // Also encode the depth for decoding later
     State s = {cube, currentMoves, currentDepth + 1, canonMoves};
-    writeToFile(s, file);
+    fprintf(file, "%" PRId64 " %" PRId64 " %d %d\n", s.cube, s.moves, s.depth, s.canonMovesToWrite);
     s.cube = tempCube;
-    enqueueState(s);
+
+    stateQueue[stateQueueTail++] = s;
   }
 }
 
-void generateLookupFile(uint64_t cube, FILE *file)
+void generateLookupFile(uint64_t cubei, FILE *file)
 {
-  addToCanonState(cube);
-  State state = {cube, 0, 0, 0};
-  enqueueState(state);
-  while (stateQueueHead < MAX_SIZE)
+  hashsetInsert(cubei);
+  State state = {cubei, 0, 0, 0};
+  stateQueue[stateQueueTail++] = state;
+  while (stateQueueHead < stateQueueTail)
   {
     // Breadth first search method
-    state =
-        stateQueue[stateQueueHead];
+    state = stateQueue[stateQueueHead];
     if (state.depth >= 11)
     {
       stateQueueHead++;
       continue;
     }
 
+    // printf("%ld ", cube);
     cube = state.cube;
+    // printf("%ld\n", cube);
     uint64_t currentCube = cube;
 
     U();
@@ -804,39 +807,25 @@ void generateLookupFile(uint64_t cube, FILE *file)
 
 int main()
 {
-  // printf("Hello, World! %"PRId64"\n", cube);
-  // struct timespec startT;
-  // clock_gettime(CLOCK_MONOTONIC, &startT);
+  FILE *file = fopen("lookupFile.txt", "w"); // Open for writing
 
-  // struct timespec endT;
-  // clock_gettime(CLOCK_MONOTONIC, &endT);
+  if (file == NULL)
+  {
+    printf("Couldn't create file!\n");
+    return 1;
+  }
+  struct timespec startT;
+  clock_gettime(CLOCK_MONOTONIC, &startT);
+  // Store solved cube
+  State state = {cube, 0, 0, 0};
+  fprintf(file, "%" PRId64 " %" PRId64 " %d %d\n", state.cube, state.moves, state.depth, state.canonMovesToWrite);
+  generateLookupFile(cube, file);
+  fclose(file);
+  struct timespec endT;
+  clock_gettime(CLOCK_MONOTONIC, &endT);
 
-  // int64_t elapsed = (int64_t)(endT.tv_sec - startT.tv_sec) * 1000000000LL + (endT.tv_nsec - startT.tv_nsec);
-  // printf("%ld ns\n", elapsed);
+  int64_t elapsed = (int64_t)(endT.tv_sec - startT.tv_sec) * 1000000000LL + (endT.tv_nsec - startT.tv_nsec);
+  printf("%ld ns\n", elapsed / 1000000);
 
-  U();
-  Ui();
-  U2();
-  D();
-  Di();
-  D2();
-  R();
-  Ri();
-  R2();
-  printf("%" PRId64 "\n", cube);
-
-  // FILE *file = fopen("lookupFile.txt", "w"); // Open for writing
-
-  // if (file == NULL)
-  // {
-  //   printf("Couldn't create file!\n");
-  //   return 1;
-  // }
-  // // Store solved cube
-  // State state = {cube, 0, 0, 0};
-  // writeToFile(state, file);
-  // generateLookupFile(cube, file);
-  // fclose(file);
-
-  return 0;
+  // return 0;
 }
